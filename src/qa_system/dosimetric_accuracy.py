@@ -103,18 +103,89 @@ class DosimetricAccuracy(QAModule):
             pass_rate = np.sum(gamma < 1) / np.sum(~np.isnan(gamma))
             return np.mean(gamma), pass_rate
         else:
-            # Simplified Logic for Sandbox/Fallback (Not full 3D Gamma optimization, just Diff)
-            # Full 3D gamma is too slow for pure python without optimization
-            # We will approximate with Dose Difference for this mockup
-            diff = np.abs(ref - eval_img)
-            max_dose = np.max(ref)
-            threshold = max_dose * (dd / 100.0)
+            return self._calculate_gamma_numpy(ref, eval_img, voxel_size, dta, dd)
 
-            # This is NOT real Gamma, but a placeholder if library is missing
-            # Real Gamma requires searching spatial neighbors.
-            passing = diff < threshold
-            pass_rate = np.sum(passing) / ref.size
-            return 0.0, pass_rate
+    def _calculate_gamma_numpy(self, reference_dose, eval_dose, voxel_size, dta_mm, dd_percent):
+        """
+        Calculates Gamma Index using pure NumPy/SciPy (Fallback).
+        Uses a localized search window to improve performance over brute force.
+        """
+        # Thresholds
+        max_dose = np.max(reference_dose)
+        dose_threshold = max_dose * (dd_percent / 100.0) # Absolute dose diff threshold
+        dist_threshold_sq = dta_mm ** 2
+
+        # Normalize doses for gamma eq: DoseDiff / (DD%)
+        # Here we compute the terms squared
+
+        # Prepare result map
+        gamma_map = np.full_like(reference_dose, np.inf)
+
+        # Define search window in voxels
+        # We need to search +/- ceil(dta / min_voxel_size)
+        search_radius = [int(np.ceil(dta_mm / res)) for res in voxel_size]
+
+        # Optimizing: Instead of looping over every reference voxel and searching,
+        # we iterate over the search window offsets (convolution-like approach).
+        # Shift the evaluation image and compute "partial gamma" for that shift.
+
+        shifts = []
+        for z in range(-search_radius[0], search_radius[0] + 1):
+            for y in range(-search_radius[1], search_radius[1] + 1):
+                for x in range(-search_radius[2], search_radius[2] + 1):
+                    # Physical distance squared for this shift
+                    dist_sq = (z * voxel_size[0])**2 + (y * voxel_size[1])**2 + (x * voxel_size[2])**2
+                    if dist_sq > dist_threshold_sq:
+                        continue
+                    shifts.append((z, y, x, dist_sq))
+
+        # For each shift, calculate Gamma candidate
+        for dz, dy, dx, dist_sq in shifts:
+            # Shifted Eval Image
+            # Using scipy.ndimage.shift is slow; simpler array slicing is faster
+            # shift > 0 means we look at eval_dose[z+dz], effectively comparing ref[z] to eval[z+dz]
+
+            # Slice ranges
+            # Ref: [max(0, -dz) : min(D, D-dz)]
+            # Eval: [max(0, dz) : min(D, D+dz)]
+
+            def get_slices(length, shift):
+                src_start = max(0, shift)
+                src_end = min(length, length + shift)
+                dst_start = max(0, -shift)
+                dst_end = min(length, length - shift)
+                return slice(dst_start, dst_end), slice(src_start, src_end)
+
+            sl_ref_z, sl_eval_z = get_slices(reference_dose.shape[0], dz)
+            sl_ref_y, sl_eval_y = get_slices(reference_dose.shape[1], dy)
+            sl_ref_x, sl_eval_x = get_slices(reference_dose.shape[2], dx)
+
+            # Extract overlapping regions
+            ref_chunk = reference_dose[sl_ref_z, sl_ref_y, sl_ref_x]
+            eval_chunk = eval_dose[sl_eval_z, sl_eval_y, sl_eval_x]
+
+            # Dose difference squared
+            dose_diff_sq = (ref_chunk - eval_chunk) ** 2
+
+            # Gamma squared for this specific neighbor relationship
+            # Gamma^2 = (dist^2 / DTA^2) + (dose_diff^2 / DD^2)
+            current_gamma_sq = (dist_sq / dist_threshold_sq) + (dose_diff_sq / (dose_threshold**2 + 1e-6))
+
+            # Update minimum gamma found so far
+            # We only update the region of gamma_map corresponding to sl_ref
+            current_min = gamma_map[sl_ref_z, sl_ref_y, sl_ref_x]
+            np.minimum(current_min, current_gamma_sq, out=current_min)
+
+        # Finalize
+        gamma_map = np.sqrt(gamma_map)
+
+        # Statistics
+        valid_voxels = np.sum(~np.isinf(gamma_map))
+        passing_voxels = np.sum(gamma_map <= 1.0)
+
+        pass_rate = passing_voxels / (valid_voxels + 1e-6)
+
+        return float(np.mean(gamma_map[gamma_map < np.inf])), pass_rate
 
     def _calculate_dvh_metrics(self, s_dose, ref_dose, masks):
         metrics = {}
