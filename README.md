@@ -3,7 +3,7 @@
 ## 概要 (Overview)
 本システムは、肺癌IGRT/ART（画像誘導/適応放射線治療）において、2Dレントゲン/透視画像から生成された**合成CT（Synthetic CT）**の品質と信頼性を評価するための包括的なQA（品質保証）ツールです。
 
-薬事承認を見据えた標準的な評価指標（Gamma解析、SSIM、Jacobian Determinant等）を用い、臨床仕様の自動レポートを生成します。
+標準的な評価指標（Gamma解析、SSIM、Jacobian Determinant等）を用い、臨床仕様の自動レポートを生成します。
 
 ## 機能 (Features)
 
