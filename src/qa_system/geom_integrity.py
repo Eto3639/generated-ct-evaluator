@@ -56,7 +56,14 @@ class GeomIntegrity(QAModule):
             landmarks = self._compare_landmarks(s_ct, p_ct)
             self.results['landmark_deviations'] = landmarks
 
-        self.status = "PASS" # Logic to determine PASS/FAIL based on thresholds would go here
+        # Determine Status based on Config
+        status = "PASS"
+        if self.results.get('drr_ssim', 1.0) < self.config.get('drr_ssim_min', 0.8):
+            status = "FAIL"
+        if self.results.get('z_continuity_score', 1.0) < self.config.get('z_continuity_score_min', 0.8):
+            status = "FAIL"
+
+        self.status = status
         return self.results
 
     def _generate_drr(self, ct_volume: np.ndarray) -> np.ndarray:

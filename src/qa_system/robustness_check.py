@@ -19,7 +19,8 @@ class RobustnessCheck(QAModule):
             return {"status": "ERROR", "message": "No input image provided"}
 
         # 1. SNR Check (Simple implementation)
-        snr_val, snr_status = self._check_snr(image)
+        snr_threshold = self.config.get('snr_threshold', 2.0)
+        snr_val, snr_status = self._check_snr(image, snr_threshold)
         self.results['snr'] = snr_val
         self.results['snr_status'] = snr_status
 
@@ -81,8 +82,9 @@ class RobustnessCheck(QAModule):
         non_zeros = np.count_nonzero(image > threshold)
         fill_factor = non_zeros / image.size
 
-        if fill_factor < 0.2: # Too much empty space
-            print(f"FOV FAIL: Fill factor {fill_factor} < 0.2")
+        min_fill_factor = self.config.get('fov_fill_factor', 0.2)
+        if fill_factor < min_fill_factor: # Too much empty space
+            print(f"FOV FAIL: Fill factor {fill_factor} < {min_fill_factor}")
             return "FAIL"
 
         return "PASS"

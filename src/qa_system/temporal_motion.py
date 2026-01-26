@@ -51,14 +51,16 @@ class TemporalMotion(QAModule):
         self.results['trajectory_smoothness'] = smoothness_score
 
         # Check for spikes
-        if smoothness_score < 0.8: # Threshold
+        min_smoothness = self.config.get('smoothness_score_min', 0.8)
+        if smoothness_score < min_smoothness:
              self.status = "FAIL"
         else:
              self.status = "PASS"
 
         # Check Jacobian failure (Negative Jacobian = Folding)
+        max_neg_jac = self.config.get('negative_jacobian_fraction_max', 0.01)
         for stat in jacobian_stats:
-            if stat['negative_jacobian_fraction'] > 0.01: # >1% folding
+            if stat['negative_jacobian_fraction'] > max_neg_jac:
                 self.status = "FAIL"
                 break
 

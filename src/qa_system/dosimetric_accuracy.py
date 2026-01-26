@@ -52,7 +52,8 @@ class DosimetricAccuracy(QAModule):
         self.results['plot_dvh_path'] = dvh_plot_path
 
         # Status Logic
-        if pass_33 > 0.90: # Clinical threshold example
+        threshold_33 = self.config.get('gamma_3mm_3%_pass_rate_min', 0.90)
+        if pass_33 >= threshold_33:
             self.status = "PASS"
         else:
             self.status = "FAIL"
