@@ -36,10 +36,7 @@ def run_calibration(num_samples: int = 5):
         r_mod = RobustnessCheck()
         res = r_mod.validate(data)
         metrics["RobustnessCheck"]["snr"].append(res.get("snr", 0))
-        # Fill factor hack: we need to access internal logic or just rely on what's exposed.
-        # Current RobustnessCheck doesn't expose fill_factor in results explicitly, only status.
-        # We should update RobustnessCheck to return fill_factor if we want to calibrate it.
-        # For now, we skip internal vars if not in results.
+        metrics["RobustnessCheck"]["fov_fill_factor"].append(res.get("fov_fill_factor", 0))
 
         # Geom
         g_mod = GeomIntegrity()

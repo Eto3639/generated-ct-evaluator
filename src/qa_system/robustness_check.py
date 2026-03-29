@@ -25,7 +25,8 @@ class RobustnessCheck(QAModule):
         self.results['snr_status'] = snr_status
 
         # 2. FOV/Masking Check
-        fov_status = self._check_fov(image)
+        fill_factor, fov_status = self._check_fov(image)
+        self.results['fov_fill_factor'] = fill_factor
         self.results['fov_status'] = fov_status
 
         # Overall Status
@@ -75,16 +76,16 @@ class RobustnessCheck(QAModule):
         if np.mean(center_crop) < threshold:
              # Center is dark -> Obstruction or empty
              print(f"FOV FAIL: Center mean {np.mean(center_crop)} < Threshold {threshold}")
-             return "FAIL"
+             return 0.0, "FAIL"
 
         # Check edges - this is highly specific to the X-ray machine geometry
         # For now, we assume if the image is mostly non-zero, it's fine.
         non_zeros = np.count_nonzero(image > threshold)
-        fill_factor = non_zeros / image.size
+        fill_factor = float(non_zeros / image.size)
 
         min_fill_factor = self.config.get('fov_fill_factor', 0.2)
         if fill_factor < min_fill_factor: # Too much empty space
             print(f"FOV FAIL: Fill factor {fill_factor} < {min_fill_factor}")
-            return "FAIL"
+            return fill_factor, "FAIL"
 
-        return "PASS"
+        return fill_factor, "PASS"
