@@ -130,6 +130,13 @@ class DosimetricAccuracy(QAModule):
         # we iterate over the search window offsets (convolution-like approach).
         # Shift the evaluation image and compute "partial gamma" for that shift.
 
+        def get_slices(length, shift):
+            src_start = max(0, shift)
+            src_end = min(length, length + shift)
+            dst_start = max(0, -shift)
+            dst_end = min(length, length - shift)
+            return slice(dst_start, dst_end), slice(src_start, src_end)
+
         shifts = []
         for z in range(-search_radius[0], search_radius[0] + 1):
             for y in range(-search_radius[1], search_radius[1] + 1):
@@ -149,13 +156,6 @@ class DosimetricAccuracy(QAModule):
             # Slice ranges
             # Ref: [max(0, -dz) : min(D, D-dz)]
             # Eval: [max(0, dz) : min(D, D+dz)]
-
-            def get_slices(length, shift):
-                src_start = max(0, shift)
-                src_end = min(length, length + shift)
-                dst_start = max(0, -shift)
-                dst_end = min(length, length - shift)
-                return slice(dst_start, dst_end), slice(src_start, src_end)
 
             sl_ref_z, sl_eval_z = get_slices(reference_dose.shape[0], dz)
             sl_ref_y, sl_eval_y = get_slices(reference_dose.shape[1], dy)

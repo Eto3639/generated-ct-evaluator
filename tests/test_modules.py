@@ -77,6 +77,31 @@ class TestQASystem(unittest.TestCase):
         self.assertEqual(module.status, "PASS")
         self.assertGreater(res['gamma_3mm_3%_pass_rate'], 0.99)
 
+    def test_dosimetric_uniform_volumes(self):
+        """Test with uniform black (0), white (max), and gray (mid) volumes."""
+        module = DosimetricAccuracy()
+
+        test_cases = [
+            ("black", 0.0),
+            ("white", 100.0),
+            ("gray", 50.0)
+        ]
+
+        for name, val in test_cases:
+            with self.subTest(case=name):
+                dose = np.full(self.shape_3d, val)
+                data = {
+                    'synthetic_dose': dose,
+                    'reference_dose': dose,
+                    'synthetic_ct': self.s_ct,
+                    'structure_masks': {'Lung': self.mask_lung},
+                    'voxel_size': (1.0, 1.0, 1.0)
+                }
+                res = module.validate(data)
+                # Identical uniform doses should pass with 100% pass rate
+                self.assertEqual(module.status, "PASS")
+                self.assertEqual(res['gamma_3mm_3%_pass_rate'], 1.0)
+
     def test_temporal_motion(self):
         module = TemporalMotion()
         data = {
