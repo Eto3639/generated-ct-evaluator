@@ -3,10 +3,12 @@ import os
 import numpy as np
 from concurrent.futures import ProcessPoolExecutor, as_completed
 import time
+import argparse
 
 # Ensure src is in path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
+from qa_system.data_loader import DataLoader
 from qa_system.geom_integrity import GeomIntegrity
 from qa_system.dosimetric_accuracy import DosimetricAccuracy
 from qa_system.temporal_motion import TemporalMotion
@@ -99,9 +101,58 @@ def generate_dummy_data():
     return data
 
 def main():
+    parser = argparse.ArgumentParser(description="Run Synthetic CT QA Pipeline.")
+    parser.add_argument("--sct", type=str, help="Path to Synthetic CT (file or DICOM dir)")
+    parser.add_argument("--pct", type=str, help="Path to Planning CT (file or DICOM dir)")
+    parser.add_argument("--sdose", type=str, help="Path to Synthetic Dose")
+    parser.add_argument("--rdose", type=str, help="Path to Reference Dose")
+    parser.add_argument("--input", type=str, help="Path to Input 2D Image")
+    parser.add_argument("--patient_id", type=str, default="TEST_PATIENT_001", help="Patient ID")
+
+    args = parser.parse_args()
+
     manager = QAManager()
-    data = generate_dummy_data()
-    manager.process_patient("TEST_PATIENT_001", data)
+
+    if args.sct:
+        # Load real data
+        print(f"Loading data from local paths...")
+        try:
+            s_ct, s_meta = DataLoader.load_and_preprocess(args.sct)
+            data = {
+                "synthetic_ct": s_ct,
+                "voxel_size": s_meta["spacing"][::-1] # (dz, dy, dx)
+            }
+
+            if args.pct:
+                p_ct, _ = DataLoader.load_and_preprocess(args.pct)
+                data["planning_ct"] = p_ct
+
+            if args.sdose:
+                s_dose, _ = DataLoader.load_and_preprocess(args.sdose)
+                data["synthetic_dose"] = s_dose
+
+            if args.rdose:
+                r_dose, _ = DataLoader.load_and_preprocess(args.rdose)
+                data["reference_dose"] = r_dose
+
+            if args.input:
+                input_img, _ = DataLoader.load_and_preprocess(args.input)
+                data["input_image"] = input_img
+
+            # Fill in remaining dummy data for missing pieces to avoid module crashes
+            dummy = generate_dummy_data()
+            for key in dummy:
+                if key not in data:
+                    data[key] = dummy[key]
+
+        except Exception as e:
+            print(f"Error loading data: {e}")
+            sys.exit(1)
+    else:
+        print("No input data provided. Running with dummy data.")
+        data = generate_dummy_data()
+
+    manager.process_patient(args.patient_id, data)
 
 if __name__ == "__main__":
     main()

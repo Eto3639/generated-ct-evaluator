@@ -61,6 +61,20 @@ pip install -r requirements.txt
 python3 src/main.py
 ```
 
+実際のデータを使用して実行する場合は、以下の引数を指定します：
+
+```bash
+python3 src/main.py --sct /path/to/synthetic_ct --pct /path/to/planning_ct --sdose /path/to/dose_file
+```
+
+引数詳細：
+* `--sct`: 合成CTへのパス（ファイルまたはDICOMディレクトリ）
+* `--pct`: 治療計画用CTへのパス
+* `--sdose`: 合成線量データへのパス
+* `--rdose`: 参照線量データへのパス
+* `--input`: 入力2D画像へのパス
+* `--patient_id`: 患者ID（デフォルト: TEST_PATIENT_001）
+
 ### 2. ライブラリとしての利用
 
 ```python
