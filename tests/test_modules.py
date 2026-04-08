@@ -63,6 +63,12 @@ class TestQASystem(unittest.TestCase):
         self.assertIn('drr_ssim', res)
         self.assertIn('z_continuity_score', res)
 
+        # Test direct volume comparison
+        self.assertIn('volume_mae', res)
+        self.assertIn('volume_ssim', res)
+        self.assertEqual(res['volume_mae'], 0.0) # Identical s_ct and p_ct
+        self.assertEqual(res['volume_ssim'], 1.0)
+
     def test_dosimetric_accuracy(self):
         module = DosimetricAccuracy()
         data = {

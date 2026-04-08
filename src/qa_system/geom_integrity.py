@@ -56,6 +56,21 @@ class GeomIntegrity(QAModule):
             landmarks = self._compare_landmarks(s_ct, p_ct)
             self.results['landmark_deviations'] = landmarks
 
+            # 4. Direct Volume Comparison (MAE, SSIM)
+            if s_ct.shape == p_ct.shape:
+                mae = np.mean(np.abs(s_ct.astype(float) - p_ct.astype(float)))
+                self.results['volume_mae'] = float(mae)
+
+                # 3D SSIM can be expensive, but helpful for structure
+                # We calculate it slice by slice for efficiency if needed,
+                # but here we'll use the 3D version if skimage supports it well
+                try:
+                    # win_size might need to be specified for 3D
+                    ssim_3d = ssim(p_ct, s_ct, data_range=max(p_ct.max(), s_ct.max()) - min(p_ct.min(), s_ct.min()))
+                    self.results['volume_ssim'] = float(ssim_3d)
+                except Exception as e:
+                    self.results['volume_ssim_error'] = str(e)
+
         # Determine Status based on Config
         status = "PASS"
         if self.results.get('drr_ssim', 1.0) < self.config.get('drr_ssim_min', 0.8):
