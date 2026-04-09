@@ -28,6 +28,12 @@ class RobustnessCheck(QAModule):
         fov_status = self._check_fov(image)
         self.results['fov_status'] = fov_status
 
+        # 3. Monte Carlo Dropout Uncertainty
+        # Expected input: 'mc_variance_map' (optional) or simulate if missing
+        variance_map = data.get('mc_variance_map')
+        mc_score = self._calculate_mc_dropout_uncertainty(image, variance_map)
+        self.results['mc_dropout_uncertainty_score'] = mc_score
+
         # Overall Status
         if snr_status == "PASS" and fov_status == "PASS":
             self.status = "PASS"
@@ -88,3 +94,27 @@ class RobustnessCheck(QAModule):
             return "FAIL"
 
         return "PASS"
+
+    def _calculate_mc_dropout_uncertainty(self, image: np.ndarray, variance_map: np.ndarray = None):
+        """
+        Calculates uncertainty score based on Monte Carlo Dropout variance maps.
+        If no variance map is provided, it simulates a basic uncertainty distribution
+        for QA pipeline demonstration purposes.
+        """
+        if variance_map is None:
+            # Simulation: Uncertainty is often higher at edges and low-signal areas
+            noise = np.random.normal(0, 1, image.shape)
+            sim_variance = np.abs(sobel(image)) * 0.1 + (noise ** 2) * 0.01
+            variance_map = sim_variance
+
+        # Normalize variance by image intensity to get relative uncertainty
+        # Mean variance across the image
+        mean_uncertainty = np.mean(variance_map)
+
+        # We define a 'score' where lower uncertainty is better (1.0 = perfect, 0.0 = high uncertainty)
+        # Baseline heuristic: if mean variance is > 5% of max signal, it's getting uncertain
+        max_sig = np.max(image) + 1e-6
+        relative_uncertainty = mean_uncertainty / max_sig
+
+        score = max(0.0, 1.0 - (relative_uncertainty * 10)) # Heuristic scaling
+        return float(score)

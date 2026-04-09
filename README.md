@@ -26,6 +26,7 @@
 4.  **堅牢性・安全性 (Robustness Check)**
     *   **FOV/Masking**: 入力画像の異常（遮蔽、欠損）を検知。
     *   **SNR**: 画質のS/N比評価。
+    *   **MC Dropout**: モンテカルロドロップアウトを用いた不確実性推計。
 
 ## 動作環境 (Requirements)
 

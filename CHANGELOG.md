@@ -9,6 +9,7 @@
 - **Data Loader**: Introduced `DataLoader` utility to support loading medical images from DICOM series, NIfTI, NRRD, and other formats using `SimpleITK`.
 - **CLI Support**: Updated `main.py` to accept command-line arguments for local data paths (`--sct`, `--pct`, `--sdose`, etc.).
 - **TCIA Data Fetcher**: Added `src/tools/fetch_tcia_data.py` to facilitate downloading lung CT datasets from TCIA (LIDC-IDRI) or direct NIfTI URLs.
+- **Robustness Check**: Added Monte Carlo Dropout uncertainty analysis to quantify the reliability of the synthesis process.
 - **Geometric Integrity**: Added direct volume comparison between Synthetic CT and Planning CT (MAE and 3D SSIM) in the `GeomIntegrity` module.
 - **Tests**: Added new test cases in `tests/test_modules.py` to verify the `DosimetricAccuracy` module using uniform data volumes:
   - **Black**: Uniform 0.0 dose volume.

@@ -46,10 +46,15 @@ class TestQASystem(unittest.TestCase):
 
     def test_robustness(self):
         module = RobustnessCheck()
-        data = {'input_image': self.input_img}
+        data = {
+            'input_image': self.input_img,
+            'mc_variance_map': np.zeros_like(self.input_img) # Perfect certainty
+        }
         res = module.validate(data)
         self.assertEqual(module.status, "PASS")
         self.assertIn('snr', res)
+        self.assertIn('mc_dropout_uncertainty_score', res)
+        self.assertEqual(res['mc_dropout_uncertainty_score'], 1.0)
 
     def test_geom_integrity(self):
         module = GeomIntegrity()
