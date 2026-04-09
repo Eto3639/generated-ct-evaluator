@@ -5,3 +5,5 @@ scikit-image
 SimpleITK
 reportlab
 matplotlib
+tcia_utils
+requests

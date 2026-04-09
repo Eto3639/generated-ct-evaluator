@@ -67,6 +67,18 @@ python3 src/main.py
 python3 src/main.py --sct /path/to/synthetic_ct --pct /path/to/planning_ct --sdose /path/to/dose_file
 ```
 
+#### サンプルデータの取得 (TCIA)
+
+TCIA (LIDC-IDRI) から実際の肺CTデータを取得するためのツールが用意されています：
+
+```bash
+# DICOMシリーズのダウンロード (tcia_utils が必要)
+python3 src/tools/fetch_tcia_data.py --series_uid <UID> --out ./tcia_data
+
+# NIfTIファイルのダウンロード
+python3 src/tools/fetch_tcia_data.py --url <URL> --out ./sample.nii.gz
+```
+
 引数詳細：
 * `--sct`: 合成CTへのパス（ファイルまたはDICOMディレクトリ）
 * `--pct`: 治療計画用CTへのパス
